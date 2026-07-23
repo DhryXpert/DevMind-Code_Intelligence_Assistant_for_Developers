@@ -1,0 +1,69 @@
+{
+  "name": "DevMind",
+  "displayName": "DevMind",
+  "description": "AI-powered code search, bug detection, code explanation, and unit test generation for VS Code.",
+  "version": "0.1.0",
+  "publisher": "Team Outliers",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Testing"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:javascript",
+    "onLanguage:typescript"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeAssistant.generateTests",
+        "title": "Code Assistant: Generate Tests"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeAssistant.generateTests",
+          "group": "codeAssistant",
+          "when": "editorHasSelection || editorTextFocus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DevMind",
+      "properties": {
+        "codeAssistant.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the DevMind backend server."
+        },
+        "codeAssistant.enableHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable code explanation on hover."
+        },
+        "codeAssistant.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic bug detection on file save."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.3.0"
+  }
+}
