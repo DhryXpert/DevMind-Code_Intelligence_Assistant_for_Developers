@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" width="128" height="128" alt="DevMind Logo" />
+</p>
+
 # DevMind — VS Code Extension
 
 AI-powered code intelligence for VS Code: code explanation on hover, bug detection on save, and unit test generation via the Command Palette.

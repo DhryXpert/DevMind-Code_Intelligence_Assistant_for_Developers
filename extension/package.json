@@ -4,6 +4,7 @@
   "description": "AI-powered code search, bug detection, code explanation, and unit test generation for VS Code.",
   "version": "0.1.0",
   "publisher": "Team Outliers",
+  "icon": "logo.png",
   "engines": {
     "vscode": "^1.80.0"
   },

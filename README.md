@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="web/public/logo.png" width="128" height="128" alt="DevMind Logo" />
+</p>
+
 # DevMind
 
 AI-powered developer tools providing **code search**, **bug detection**, **code explanation**, and **unit test generation** — all inside VS Code.
