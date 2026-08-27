@@ -1,194 +1,206 @@
-<p align="center">
-  <img src="web/public/logo.png" width="128" height="128" alt="DevMind Logo" />
-</p>
+# DevMind — Code Intelligence Assistant
 
-# DevMind
-
-AI-powered developer tools providing **code search**, **bug detection**, **code explanation**, and **unit test generation** — all inside VS Code.
-
-Built with a **FastAPI backend** and a **VS Code extension**, using mock data so the entire system is runnable immediately without trained models or API keys.
+**An AI-powered developer assistant for VS Code featuring Hybrid Semantic Code Search, Bug Detection, Code Explanation, and Automated Unit Test Generation.**
 
 ---
 
-## Quick Start
+## Project Overview
 
-### 1. Run the Backend
+**DevMind** is a developer productivity platform that integrates machine learning models directly into VS Code. It consists of a high-performance **FastAPI backend** (orchestrating ML models, FAISS vector search, and LLM services) and a **native VS Code extension** (providing side panel views, hover tooltips, and real-time diagnostics).
+
+---
+
+## Team & Milestone Status
+
+| Team Member | Module & Responsibilities | Tech Stack | Status | Evaluation Metrics |
+|---|---|---|:---:|:---:|
+| **Dhairya (Lead)** | System Architecture, VS Code Extension, CI/CD Pipeline | TypeScript, VS Code API, FastAPI | **Completed** | Clean Build, 18/18 Tests Passing |
+| **Student A** | Hybrid Semantic Code Search Engine | SentenceTransformers, FAISS, BM25, RRF | **Completed** | **MRR@5: 0.9000**<br>**NDCG@10: 0.9262** |
+| **Student B** | Bug & Defect Detection | AST Parsing, Static Heuristics, XGBoost | In Progress | API Contract Verified (18/18 Tests) |
+| **Student C** | Code Explanation & Test Generation | Fine-tuned CodeT5+, Google Gemini API | In Progress | API Contract Verified (18/18 Tests) |
+
+---
+
+## System Architecture
+
+```
++-------------------------------------------------------------------------+
+|                        VS Code IDE (Client Extension)                   |
+|                                                                         |
+|  +---------------------------+  +------------------+  +--------------+  |
+|  |   DevMind Side Panel      |  |  Hover Provider  |  | Diagnostics  |  |
+|  |  > Code Search            |  |  (Code Explain)  |  |  (On Save)   |  |
+|  |  > Generate Tests         |  +------------------+  +--------------+  |
+|  +---------------------------+                                          |
++------------------------------------+------------------------------------+
+                                     |
+                          HTTP JSON Requests (Port 8000)
+                                     |
++------------------------------------v------------------------------------+
+|                    DevMind Backend (FastAPI Microservice)               |
+|                                                                         |
+|  +-------------------------+  +---------------------------------------+ |
+|  | API Routing (main.py)   |  | ML Services (app/services/)           | |
+|  | - POST /search          |  | - Code Search: DistilRoBERTa + FAISS  | |
+|  | - POST /detect-bugs     |  | - Bug Detector: AST + Classifier      | |
+|  | - POST /explain         |  | - Explanation: Fine-tuned CodeT5+     | |
+|  | - POST /generate-tests  |  | - Test Gen: LLM Service               | |
+|  | - GET  /health          |  |                                       | |
+|  +-------------------------+  +---------------------------------------+ |
++-------------------------------------------------------------------------+
+```
+
+---
+
+## Core Features
+
+### 1. Hybrid Semantic Code Search
+- **Natural Language Querying**: Query code using functional descriptions (e.g. *"authentication middleware"*, *"download file from url"*).
+- **Hybrid Dense + Sparse Engine**: Combines dense vector similarity (`st-codesearch-distilroberta-base` + FAISS) with sparse keyword matching (`BM25Okapi`) fused via **Reciprocal Rank Fusion (RRF, $k=60$)**.
+- **Side Panel Interface**: Dedicated search accordion dropdown with 1-click clipboard copy.
+
+### 2. Automated Unit Test Generation
+- **Context-Aware**: Automatically detects the active file and selection in your editor (`Python` / `pytest`, `JavaScript` / `Jest`).
+- **Full-Space Preview**: Interactive output container with **Copy Tests** and **Open in New Tab** actions.
+
+### 3. Code Explanation on Hover
+- **Inline Tooltips**: Hover over functions, classes, or code blocks in `.py` or `.js` files to view instant AI-generated explanations.
+
+### 4. On-Save Bug Detection & Diagnostics
+- **Real-Time Linting**: Triggers upon saving files to flag potential defects, null references, and code smells via squiggly underlines and the Problems panel.
+
+---
+
+## Quick Start Guide
+
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- VS Code 1.80.0+
+
+---
+
+### Step 1: Start the Backend Server
 
 ```bash
+# Navigate to backend directory
 cd backend
 
-# Create and activate a virtual environment
-python -m venv venv
+# Create and activate virtual environment
+python -m venv .env
 # Windows:
-.\venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
+.\.env\Scripts\activate
+# macOS / Linux:
+source .env/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Start the server
-uvicorn app.main:app --reload
+# Start FastAPI server
+uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be available at **http://localhost:8000**. Open http://localhost:8000/docs for interactive Swagger documentation.
-
-### 2. Run the VS Code Extension
-
-```bash
-cd extension
-
-# Install dependencies
-npm install
-
-# Compile TypeScript
-npm run compile
-```
-
-Then:
-1. Open the `extension/` folder in VS Code
-2. Press **F5** to launch the Extension Development Host
-3. Open any `.py` or `.js` file to activate the extension
-
-### 3. Try It Out
-
-| Feature | How to trigger | What happens |
-|---------|---------------|--------------|
-| 🧠 Code Explanation | **Hover** over any word in a `.py`/`.js` file | Tooltip with AI explanation |
-| 🐛 Bug Detection | **Save** any `.py`/`.js` file | Squiggly underlines + Problems panel |
-| 🧪 Test Generation | **Ctrl+Shift+P** → "Code Assistant: Generate Tests" | New tab with generated tests |
+> **API Documentation**: Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser for Swagger UI.
 
 ---
 
-## Project Structure
+### Step 2: Run the VS Code Extension
+
+```bash
+# Navigate to extension directory
+cd extension
+
+# Install dependencies and compile
+npm install
+npm run compile
+```
+
+1. Open the `extension/` folder in VS Code.
+2. Press **`F5`** (or select **Run -> Start Debugging**) to launch the **Extension Development Host**.
+3. In the new window, click the **DevMind icon** in the left Activity Bar or press **`Ctrl+Alt+S`** (`Cmd+Alt+S` on Mac).
+
+---
+
+## Testing & Quality Assurance
+
+### 1. Backend Endpoint Contract Tests
+```bash
+cd backend
+pytest tests/test_endpoints.py -v
+```
+**Result**: `18 passed in 14.23s (100% Green)`
+
+### 2. Search Benchmark Evaluation
+```bash
+python devmind_code_search/eval.py
+```
+**Results**:
+- **MRR@5**: `0.9000`
+- **NDCG@10**: `0.9262`
+
+### 3. Extension Compilation Check
+```bash
+cd extension
+npm run compile
+```
+**Result**: `0 TypeScript Errors`
+
+---
+
+## Repository Structure
 
 ```
 DevMind/
-├── backend/                      ← FastAPI backend (Python)
+├── backend/                              ← FastAPI backend microservice (Python)
 │   ├── app/
-│   │   ├── main.py               ← App entry point + CORS + router wiring
-│   │   ├── api/                  ← HTTP endpoint routers
-│   │   │   ├── search.py         ← POST /search
-│   │   │   ├── bugs.py           ← POST /detect-bugs
-│   │   │   ├── explain.py        ← POST /explain + POST /generate-tests
-│   │   │   └── health.py         ← GET /health
-│   │   ├── services/             ← Business logic (★ swap point for real ML)
-│   │   │   ├── code_search.py    ← Mock semantic code search
-│   │   │   ├── bug_detector.py   ← Mock bug detection
-│   │   │   ├── llm_service.py    ← Mock code explanation + test generation
-│   │   │   └── auth.py           ← Placeholder authentication
-│   │   └── models/
-│   │       └── schemas.py        ← Pydantic request/response contracts
-│   ├── tests/
-│   │   └── test_endpoints.py     ← Endpoint tests (pytest + httpx)
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env.example
+│   │   ├── main.py                       ← Entry point, CORS, and endpoint routing
+│   │   ├── api/                          ← API route handlers (/search, /detect-bugs, etc.)
+│   │   ├── services/                     ← ML services (code_search.py, bug_detector.py, llm_service.py)
+│   │   ├── data/                         ← Pre-indexed FAISS vector store & metadata
+│   │   └── models/schemas.py             ← Pydantic request/response schemas
+│   ├── tests/test_endpoints.py           ← Pytest API verification suite (18 tests)
+│   ├── requirements.txt                  ← Backend Python dependencies
+│   ├── Dockerfile                        ← Production container specification
+│   └── .dockerignore                     ← Docker build context exclusions
 │
-├── notebooks/                    ← Jupyter Notebooks for ML model training
-│   ├── A_code-search.ipynb       ← Code search embedding & indexing
-│   ├── B_bug-detector.ipynb      ← Bug detection model training
-│   └── C_finetune-codet5.ipynb   ← CodeT5+ fine-tuning
-│
-├── extension/                    ← VS Code extension (TypeScript)
+├── extension/                            ← VS Code Extension (TypeScript)
 │   ├── src/
-│   │   ├── extension.ts          ← Entry point: activate() wires features
-│   │   ├── hoverProvider.ts      ← Hover → POST /explain
-│   │   ├── diagnostics.ts        ← On save → POST /detect-bugs
-│   │   └── commands.ts           ← Command → POST /generate-tests
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
+│   │   ├── extension.ts                  ← Extension lifecycle & registration
+│   │   ├── side_panel.ts                 ← Side panel: Code Search & Test Generation
+│   │   ├── hoverProvider.ts              ← Hover Code Explanation Provider
+│   │   ├── diagnostics.ts                ← On-Save Bug Detection Diagnostics
+│   │   └── commands.ts                   ← Command Palette actions
+│   ├── package.json                      ← Manifest, views, menus, keybindings
+│   ├── tsconfig.json                     ← TypeScript compiler configuration
+│   └── README.md                         ← Extension specific documentation
 │
-├── .github/workflows/
-│   └── ci.yml                    ← GitHub Actions: pytest + tsc
+├── devmind_code_search/                  ← Code search training & evaluation (Student A)
+│   ├── build_index.py                    ← Index generation pipeline
+│   ├── eval.py                           ← Evaluation benchmark script
+│   └── code_search.py                    ← Core embedding search model
 │
-├── docs/
-│   ├── api-contracts.md          ← Exact JSON schemas for all endpoints
-│   └── system-design.md          ← Architecture description
+├── notebooks/                            ← Experimental Jupyter Notebooks
+│   ├── A_code-search.ipynb               ← Student A: Search model exploration
+│   ├── B_bug-detector.ipynb              ← Student B: Defect classification model
+│   └── C_finetune-codet5.ipynb           ← Student C: CodeT5+ fine-tuning pipeline
 │
-└── README.md                     ← This file
+└── README.md                             ← Master repository documentation
 ```
 
 ---
 
-## Running Tests
+## API Specification
 
-### Backend Tests
-```bash
-cd backend
-pip install anyio pytest-anyio    # async test support
-pytest tests/ -v
-```
-
-### Extension Compilation Check
-```bash
-cd extension
-npm run compile
-```
-
----
-
-## Docker
-
-```bash
-# Build
-docker build -t code-assistant-backend ./backend
-
-# Run
-docker run -p 8000:8000 code-assistant-backend
-```
-
----
-
-## Configuration
-
-The extension's backend URL is configurable via VS Code settings:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `codeAssistant.backendUrl` | `http://localhost:8000` | Backend server URL |
-| `codeAssistant.enableHover` | `true` | Enable/disable hover explanations |
-| `codeAssistant.enableDiagnostics` | `true` | Enable/disable bug detection |
-
----
-
-## Next Steps: Replace Mock Functions with Real Logic
-
-The project is designed so that swapping mock → real is a **single-file change per module**. Each mock function in `backend/app/services/` is marked with `# TODO: replace with real model/API call`.
-
-### What to swap
-
-| File | Function(s) | Replace with |
-|------|------------|-------------|
-| `services/code_search.py` | `search_code()` | CodeBERT embeddings + FAISS/Pinecone vector search |
-| `services/bug_detector.py` | `detect_bugs()` | Fine-tuned defect detection model or static analysis |
-| `services/llm_service.py` | `explain_code()`, `generate_tests()` | OpenAI / Anthropic / Gemini / local LLM API calls |
-| `services/auth.py` | `verify_api_key()` | Real API key or JWT validation |
-
-### Rules for swapping
-1. **Keep the same function signatures** — the API routers call these directly
-2. **Return the same types** — use the Pydantic models from `schemas.py`
-3. **No changes needed** in `api/*.py`, `schemas.py`, or the VS Code extension
-
-See [docs/api-contracts.md](docs/api-contracts.md) for the exact JSON shapes your implementations must match.
-
----
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/search` | Semantic code search |
-| `POST` | `/detect-bugs` | Bug / code smell detection |
-| `POST` | `/explain` | Code explanation |
-| `POST` | `/generate-tests` | Unit test generation |
-
-Full API docs available at http://localhost:8000/docs when the backend is running.
+| Method | Endpoint | Description | Status |
+|---|---|---|:---:|
+| `GET` | `/health` | Server status and service health check | Production |
+| `POST` | `/search` | Natural language hybrid code search | Production (Student A) |
+| `POST` | `/detect-bugs` | AST defect classification and lint diagnostics | Contract Verified |
+| `POST` | `/explain` | Code snippet semantic explanation | Contract Verified |
+| `POST` | `/generate-tests` | Automated unit test generation | Contract Verified |
 
 ---
 
 ## License
 
-MIT
+This project is developed by **Team Outliers** under the **MIT License**.
