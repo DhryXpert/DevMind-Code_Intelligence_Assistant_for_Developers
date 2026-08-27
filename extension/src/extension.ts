@@ -14,6 +14,7 @@ import * as vscode from "vscode";
 import { registerHoverProvider } from "./hoverProvider";
 import { registerDiagnostics } from "./diagnostics";
 import { registerCommands } from "./commands";
+import { registerSidePanel } from "./side_panel";
 
 /**
  * Read the backend URL from VS Code settings.
@@ -33,6 +34,7 @@ export function activate(context: vscode.ExtensionContext): void {
   console.log(`DevMind activated (backend: ${backendUrl})`);
 
   // --- Register all features ---
+  registerSidePanel(context, backendUrl);
   registerHoverProvider(context, backendUrl);
   registerDiagnostics(context, backendUrl);
   registerCommands(context, backendUrl);

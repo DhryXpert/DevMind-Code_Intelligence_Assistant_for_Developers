@@ -4,107 +4,99 @@
 
 # DevMind — VS Code Extension
 
-AI-powered code intelligence for VS Code: code explanation on hover, bug detection on save, and unit test generation via the Command Palette.
+**DevMind** brings AI-powered code search, unit test generation, code explanation, and bug detection directly into your VS Code workspace.
 
-## Prerequisites
+---
+
+## ⚡ Features Overview
+
+### 1. 🔍 Semantic Code Search (Sidebar)
+- Accessible via the **DevMind** icon in the Activity Bar or **`Ctrl+Alt+S`** (`Cmd+Alt+S` on macOS).
+- Powered by Student A's hybrid search engine (**SentenceTransformers + FAISS + BM25**).
+- Natural language querying with sample query chips and 1-click **Copy to Clipboard**.
+
+### 2. 🧪 Unit Test Generation (Sidebar & Command Palette)
+- Native dropdown in the DevMind sidebar that dynamically detects the active file/selection in the editor.
+- Generates **`pytest`** test suites for Python and **`Jest`** test suites for JavaScript/TypeScript.
+- Interactive viewer with **Copy Tests** and **Open in New Tab** actions.
+
+### 3. 🧠 Code Explanation on Hover
+- **Hover** over any function, class, or keyword in `.py` or `.js` files to view explanations inline.
+
+### 4. 🐛 Real-Time Bug Detection on Save
+- **Save** any `.py` or `.js` file to trigger AST diagnostics and defect analysis.
+- Visual feedback via editor squiggly underlines and entries in the VS Code **Problems panel**.
+
+---
+
+## 🛠️ Prerequisites
 
 - **Node.js** ≥ 18.0
 - **VS Code** ≥ 1.80.0
-- The **DevMind backend** running locally (see `../backend/`)
+- **DevMind Backend** running locally on `http://localhost:8000` (see `../backend/README.md`)
 
-## Setup
+---
+
+## 🚀 Setup & Launching
 
 ```bash
-# 1. Install dependencies
-cd vscode-extension
+# 1. Navigate to extension directory
+cd extension
+
+# 2. Install dependencies
 npm install
 
-# 2. Compile TypeScript
+# 3. Compile TypeScript
 npm run compile
 ```
 
-## Running in Development (Extension Development Host)
+### Launch in Development Mode:
+1. Open the `extension/` directory in VS Code.
+2. Press **`F5`** (or click **Run → Start Debugging**).
+3. In the new **[Extension Development Host]** window:
+   - Click the **DevMind** Activity Bar icon (left sidebar).
+   - Expand `∨ Code Search` to test natural language search.
+   - Open a `.py` file and expand `∨ Generate Tests` to generate test cases.
+   - Hover over code to test explanations.
+   - Save a file to test diagnostics.
 
-### Step 1 — Start the Backend
+---
 
-```bash
-cd ../backend
-# If using a venv:
-.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
-# Or if python is on PATH:
-uvicorn app.main:app --reload
-```
+## ⚙️ Configuration Settings
 
-Verify the backend is running by opening http://localhost:8000/docs in your browser.
-
-### Step 2 — Launch the Extension
-
-1. Open the `vscode-extension/` folder in VS Code
-2. Press **F5** (or Run → Start Debugging)
-3. Select **"VS Code Extension Development Host"** if prompted
-4. A new VS Code window will open with the extension loaded
-
-### Step 3 — Verify Features
-
-#### 🧠 Hover — Code Explanation
-
-1. In the Extension Development Host window, open any `.py` or `.js` file
-2. **Hover** over any function name or keyword
-3. A tooltip should appear with a mock explanation from the backend:
-   > _"This python code defines a function that processes input data through several steps..."_
-
-#### 🐛 Save — Bug Detection
-
-1. Open any `.py` or `.js` file in the Extension Development Host
-2. **Save** the file (Ctrl+S / Cmd+S)
-3. You should see:
-   - **Squiggly underlines** on lines 3, 7, and 12 (mock bug locations)
-   - Entries in the **Problems panel** (View → Problems) with messages like:
-     - ❌ "Potential null reference: variable 'result' may be None before use"
-     - ⚠️ "Unused variable 'temp_data' — assigned but never read"
-     - ℹ️ "Consider using a context manager..."
-
-#### 🧪 Command — Generate Tests
-
-1. Open any `.py` or `.js` file
-2. Either:
-   - Press **Ctrl+Shift+P** → type "Code Assistant: Generate Tests" → Enter
-   - Or **right-click** in the editor → select "Code Assistant: Generate Tests"
-3. A new editor tab should open alongside with mock test code:
-   - Python files → pytest-style tests
-   - JavaScript files → Jest-style tests
-4. A notification should appear: _"Generated 3 test(s) using pytest"_
-
-## Configuration
-
-Open VS Code Settings (Ctrl+, / Cmd+,) and search for "Code Assistant":
+Configure DevMind behavior via **Settings** (`Ctrl+,` / `Cmd+,` → search for `Code Assistant`):
 
 | Setting | Default | Description |
-|---------|---------|-------------|
-| `codeAssistant.backendUrl` | `http://localhost:8000` | Backend server URL |
-| `codeAssistant.enableHover` | `true` | Enable/disable hover explanations |
-| `codeAssistant.enableDiagnostics` | `true` | Enable/disable bug detection on save |
+|---|---|---|
+| `codeAssistant.backendUrl` | `http://localhost:8000` | URL of the running DevMind backend microservice. |
+| `codeAssistant.enableHover` | `true` | Enable/disable code explanations on hover. |
+| `codeAssistant.enableDiagnostics` | `true` | Enable/disable automatic bug detection on save. |
 
-## Project Structure
+---
+
+## 📂 Extension Architecture
 
 ```
-vscode-extension/
+extension/
 ├── src/
-│   ├── extension.ts       ← Entry point: activate() wires everything together
+│   ├── extension.ts       ← Main entry point: wires sidebar, hovers, diagnostics, commands
+│   ├── side_panel.ts      ← WebviewViewProviders for Code Search and Generate Tests
 │   ├── hoverProvider.ts   ← Hover provider calling POST /explain
 │   ├── diagnostics.ts     ← On-save diagnostics calling POST /detect-bugs
-│   └── commands.ts        ← "Generate Tests" command calling POST /generate-tests
-├── out/                   ← Compiled JavaScript (generated by tsc)
-├── package.json           ← Extension manifest with commands, menus, settings
-├── tsconfig.json          ← TypeScript configuration
-└── README.md              ← This file
+│   └── commands.ts        ← Command palette & context menu actions
+├── out/                   ← Compiled JavaScript bundle (tsc)
+├── package.json           ← VS Code manifest: contributes views, commands, menus
+├── tsconfig.json          ← TypeScript compiler configuration
+└── README.md              ← Extension documentation
 ```
 
-## Troubleshooting
+---
 
-| Problem | Solution |
-|---------|----------|
-| Hover shows nothing | Check the backend is running. Check Output panel → "DevMind" for errors. |
-| No squiggles on save | Ensure `codeAssistant.enableDiagnostics` is `true`. Check the backend is running. |
-| "Could not connect to backend" | Start the backend with `uvicorn app.main:app --reload`. Check the URL in settings. |
-| Extension doesn't activate | Make sure you have a `.py`, `.js`, or `.ts` file open. |
+## 🔧 Troubleshooting
+
+| Issue | Resolution |
+|---|---|
+| **Sidebar shows "Could not connect to backend"** | Ensure the backend server is running (`uvicorn app.main:app --reload` on port 8000). |
+| **Active file not showing in Generate Tests** | Ensure an editor tab is open and active, or click the **`🔄 Refresh`** button. |
+| **No hover explanations appearing** | Check that `codeAssistant.enableHover` is enabled in settings and hover over a token in a supported language (`.py`, `.js`, `.ts`). |
+| **No squiggly underlines on save** | Verify that `codeAssistant.enableDiagnostics` is `true` in VS Code settings. |

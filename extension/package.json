@@ -20,17 +20,56 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "devmind-sidebar",
+          "title": "DevMind",
+          "icon": "logo.png"
+        }
+      ]
+    },
+    "views": {
+      "devmind-sidebar": [
+        {
+          "type": "webview",
+          "id": "codeAssistant.searchView",
+          "name": "Code Search"
+        },
+        {
+          "type": "webview",
+          "id": "codeAssistant.generateTestsView",
+          "name": "Generate Tests"
+        }
+      ]
+    },
     "commands": [
+      {
+        "command": "codeAssistant.codeSearch",
+        "title": "Code Assistant: Search Code"
+      },
       {
         "command": "codeAssistant.generateTests",
         "title": "Code Assistant: Generate Tests"
       }
     ],
+    "keybindings": [
+      {
+        "command": "codeAssistant.codeSearch",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
+      }
+    ],
     "menus": {
       "editor/context": [
         {
+          "command": "codeAssistant.codeSearch",
+          "group": "codeAssistant@1",
+          "when": "editorHasSelection || editorTextFocus"
+        },
+        {
           "command": "codeAssistant.generateTests",
-          "group": "codeAssistant",
+          "group": "codeAssistant@2",
           "when": "editorHasSelection || editorTextFocus"
         }
       ]
