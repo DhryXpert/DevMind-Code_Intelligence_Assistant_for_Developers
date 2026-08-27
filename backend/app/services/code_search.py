@@ -1,114 +1,117 @@
 """
-Code Search Service — Mock Implementation
-
-This module provides semantic code search functionality.
-The mock implementation returns realistic-looking fake results.
-
-To swap in a real implementation, replace the `search_code()` function
-with one that queries a real vector database / code embedding index.
-The function signature and return type MUST stay the same.
+Code Search Service — Real Implementation (SentenceTransformers + FAISS + BM25)
+Owner: Student A
 """
 
+import json
+import os
+import re
+from pathlib import Path
+import faiss
+import numpy as np
+from rank_bm25 import BM25Okapi
+from sentence_transformers import SentenceTransformer
+
 from app.models.schemas import SearchResult
+
+# Resolve paths dynamically relative to backend/app/
+BASE_DIR = Path(__file__).resolve().parent.parent / "data"
+INDEX_PATH = BASE_DIR / "code_search.index"
+SNIPPETS_PATH = BASE_DIR / "code_snippets.json"
+META_PATH = BASE_DIR / "code_snippets_meta.json"
+
+EMBEDDING_MODEL_NAME = "flax-sentence-embeddings/st-codesearch-distilroberta-base"
+RRF_K = 60
+# Max possible RRF score: both rankings agree on rank 0. Used to scale the
+# fused score into SearchResult's 0.0-1.0 range so a perfect match reads as
+# confidence ~1.0 instead of capping out around ~0.33.
+_MAX_RRF_SCORE = 2.0 / (RRF_K + 1)
+_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+# Global lazy state
+_model = None
+_index = None
+_code_snippets = None
+_code_snippets_meta = None
+_bm25 = None
+
+
+def _get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+    return _model
+
+
+def _tokenize(text: str):
+    return _TOKEN_RE.findall(text.lower())
+
+
+def embed_code(code_string: str) -> np.ndarray:
+    """Converts a code snippet or query into an L2-normalized vector."""
+    model = _get_model()
+    return model.encode(code_string, normalize_embeddings=True)
+
+
+def load_index():
+    """Loads FAISS index, code snippets, metadata, and initializes BM25 into memory."""
+    global _index, _code_snippets, _code_snippets_meta, _bm25
+    if not INDEX_PATH.exists() or not SNIPPETS_PATH.exists() or not META_PATH.exists():
+        raise FileNotFoundError(
+            f"Index files not found at {INDEX_PATH} / {SNIPPETS_PATH} / {META_PATH}."
+        )
+    _index = faiss.read_index(str(INDEX_PATH))
+    with open(SNIPPETS_PATH, "r", encoding="utf-8") as f:
+        _code_snippets = json.load(f)
+    with open(META_PATH, "r", encoding="utf-8") as f:
+        _code_snippets_meta = json.load(f)
+    _bm25 = BM25Okapi([_tokenize(snippet) for snippet in _code_snippets])
 
 
 def search_code(query: str, max_results: int = 5) -> list[SearchResult]:
     """
-    Search for code snippets matching the given query.
-
-    Args:
-        query: Natural-language or code search query.
-        max_results: Maximum number of results to return.
-
-    Returns:
-        A list of SearchResult objects with matching code snippets.
-
-    # TODO: replace with real model/API call
-    # Real implementation would:
-    #   1. Embed the query using a code embedding model (e.g. CodeBERT)
-    #   2. Search a vector index (e.g. FAISS, Pinecone) for nearest neighbors
-    #   3. Return the top-k matching code snippets with similarity scores
+    Search for code snippets matching the given query using Hybrid Search
+    (SentenceTransformers + FAISS semantic search fused with BM25 via RRF).
     """
+    global _index, _code_snippets, _code_snippets_meta, _bm25
+    if _index is None or _code_snippets is None or _code_snippets_meta is None or _bm25 is None:
+        load_index()
 
-    # --- MOCK DATA ---
-    # These fake results simulate what a real code search would return.
-    mock_results = [
-        SearchResult(
-            filename="src/utils/auth.py",
-            snippet=(
-                "def verify_token(token: str) -> dict:\n"
-                "    \"\"\"Verify JWT token and return decoded payload.\"\"\"\n"
-                "    try:\n"
-                "        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])\n"
-                "        return payload\n"
-                "    except jwt.ExpiredSignatureError:\n"
-                "        raise HTTPException(status_code=401, detail='Token expired')"
-            ),
-            score=0.95,
-            language="python",
-            line_start=42,
-            line_end=48,
-        ),
-        SearchResult(
-            filename="src/api/middleware.py",
-            snippet=(
-                "class AuthMiddleware:\n"
-                "    async def __call__(self, request, call_next):\n"
-                "        token = request.headers.get('Authorization')\n"
-                "        if not token:\n"
-                "            return JSONResponse(status_code=403, content={'error': 'Missing token'})\n"
-                "        request.state.user = verify_token(token)\n"
-                "        return await call_next(request)"
-            ),
-            score=0.88,
-            language="python",
-            line_start=15,
-            line_end=21,
-        ),
-        SearchResult(
-            filename="src/services/user_service.js",
-            snippet=(
-                "async function authenticateUser(email, password) {\n"
-                "  const user = await User.findOne({ email });\n"
-                "  if (!user || !await bcrypt.compare(password, user.passwordHash)) {\n"
-                "    throw new AuthenticationError('Invalid credentials');\n"
-                "  }\n"
-                "  return generateToken(user);\n"
-                "}"
-            ),
-            score=0.82,
-            language="javascript",
-            line_start=34,
-            line_end=40,
-        ),
-        SearchResult(
-            filename="src/config/security.py",
-            snippet=(
-                "# Security configuration\n"
-                "SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')\n"
-                "ALGORITHM = 'HS256'\n"
-                "ACCESS_TOKEN_EXPIRE_MINUTES = 30\n"
-                "REFRESH_TOKEN_EXPIRE_DAYS = 7"
-            ),
-            score=0.75,
-            language="python",
-            line_start=8,
-            line_end=12,
-        ),
-        SearchResult(
-            filename="tests/test_auth.py",
-            snippet=(
-                "def test_valid_token_returns_payload():\n"
-                "    token = create_test_token({'sub': 'user123'})\n"
-                "    result = verify_token(token)\n"
-                "    assert result['sub'] == 'user123'\n"
-                "    assert 'exp' in result"
-            ),
-            score=0.71,
-            language="python",
-            line_start=22,
-            line_end=26,
-        ),
+    n = len(_code_snippets)
+
+    # 1. Semantic Search
+    query_vector = embed_code(query).astype("float32").reshape(1, -1)
+    _, semantic_order = _index.search(query_vector, n)
+    semantic_rank = {int(idx): rank for rank, idx in enumerate(semantic_order[0])}
+
+    # 2. Lexical / Keyword Search (BM25)
+    bm25_scores = _bm25.get_scores(_tokenize(query))
+    bm25_order = np.argsort(bm25_scores)[::-1]
+    bm25_rank = {int(idx): rank for rank, idx in enumerate(bm25_order)}
+
+    # 3. Reciprocal Rank Fusion (RRF)
+    fused = [
+        (
+            idx,
+            1.0 / (RRF_K + semantic_rank[idx] + 1)
+            + 1.0 / (RRF_K + bm25_rank[idx] + 1),
+        )
+        for idx in range(n)
     ]
+    fused.sort(key=lambda pair: pair[1], reverse=True)
 
-    return mock_results[:max_results]
+    results = []
+    for idx, score in fused[:max_results]:
+        snippet_text = _code_snippets[idx]
+        meta = _code_snippets_meta[idx]
+        results.append(
+            SearchResult(
+                filename=meta["filename"],
+                snippet=snippet_text[:500],
+                score=float(min(1.0, score / _MAX_RRF_SCORE)),  # scale RRF score to 0.0-1.0 confidence
+                language=meta["language"],
+                line_start=meta["line_start"],
+                line_end=meta["line_end"],
+            )
+        )
+    return results

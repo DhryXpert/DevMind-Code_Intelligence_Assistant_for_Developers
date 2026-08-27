@@ -14,3 +14,8 @@ httpx>=0.25.0
 
 # Environment variables
 python-dotenv>=1.0.0
+
+# Code search (semantic + keyword hybrid)
+sentence-transformers
+faiss-cpu
+rank-bm25
